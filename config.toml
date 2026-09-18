@@ -1,0 +1,108 @@
+# Configuration de PrepaWeek
+#
+# Modifiable ici à la main, OU depuis l'appli via le bouton "✏" (cet
+# en-tête est réécrit automatiquement à chaque sauvegarde depuis l'appli,
+# mais la structure ci-dessous reste la même).
+#
+# Structure :
+#   [[categories]]
+#   name = "Nom de la catégorie"
+#   icon = "🎯"          <- utilise uniquement des icônes confirmées visibles,
+#                            voir la liste dans le README (police intégrée à
+#                            egui, limitée : beaucoup d'emoji récents ou les
+#                            drapeaux ne s'affichent pas et laissent un carré)
+#
+#   [[categories.tasks]]
+#   name = "Nom de la tâche"
+#   occurrences = 1          <- nombre de cases à cocher sur la semaine
+#   count_in_progress = true <- false = tâche "bonus", hors avancement
+#   ask_include = false      <- true = redemandé chaque semaine (inclure ?)
+#   ask_occurrences = false  <- true = redemandé chaque semaine (combien ?)
+#   weekday_only = false     <- true = suivie aussi dans la barre "avant
+#                              vendredi soir" séparée (lundi → vendredi)
+
+[[categories]]
+name = "Anglais"
+icon = "🔤"
+
+[[categories.tasks]]
+name = "Lire un article"
+ask_occurrences = true
+
+[[categories.tasks]]
+name = "Écouter un article"
+
+[[categories.tasks]]
+name = "BBC News (1 min)"
+occurrences = 3
+
+[[categories.tasks]]
+name = "Apprendre le vocabulaire anglais"
+ask_include = true
+
+
+[[categories]]
+name = "Mémorisation"
+icon = "💡"
+
+[[categories.tasks]]
+name = "Anki"
+occurrences = 7
+
+
+[[categories]]
+name = "Sport"
+icon = "🏃"
+
+[[categories.tasks]]
+name = "Séance de sport"
+occurrences = 2
+ask_occurrences = true
+
+
+[[categories]]
+name = "Kholles"
+icon = "🎓"
+
+[[categories.tasks]]
+name = "Préparer les khôlles"
+occurrences = 2
+
+[[categories.tasks]]
+name = "Khôlles faites"
+occurrences = 2
+
+
+[[categories]]
+name = "Français"
+icon = "📖"
+
+[[categories.tasks]]
+name = "Lire (30 min)"
+occurrences = 5
+
+
+[[categories]]
+name = "Prépa"
+icon = "📝"
+
+[[categories.tasks]]
+name = "Étudier le DS de la semaine"
+weekday_only = true
+
+
+[[categories]]
+name = "Maison"
+icon = "🏠"
+
+[[categories.tasks]]
+name = "Vaisselle"
+count_in_progress = false
+
+[[categories.tasks]]
+name = "Poubelle à vider"
+count_in_progress = false
+
+[[categories.tasks]]
+name = "Ranger les feuilles"
+count_in_progress = false
