@@ -963,10 +963,12 @@ fn animated_checkbox(ui: &mut egui::Ui, id: egui::Id, checked: &mut bool, accent
 
 /// Barre de progression personnalisée : remplissage plein arrondi dans la
 /// couleur d'accent donnée, reflet brillant, et un chatoiement animé qui
-/// balaie doucement la barre en continu.
-fn fancy_progress_bar(ui: &mut egui::Ui, progress: f32, color: egui::Color32, height: f32) {
-    let desired_width = ui.available_width();
-    let (rect, _response) = ui.allocate_exact_size(egui::vec2(desired_width, height), egui::Sense::hover());
+/// balaie doucement la barre en continu. `width` est explicite plutôt que
+/// déduit de l'espace disponible, pour pouvoir la placer de façon fiable
+/// à côté d'un autre élément (ex. le palier avance/retard) sur une même
+/// ligne.
+fn fancy_progress_bar(ui: &mut egui::Ui, progress: f32, color: egui::Color32, height: f32, width: f32) {
+    let (rect, _response) = ui.allocate_exact_size(egui::vec2(width, height), egui::Sense::hover());
     let rounding = egui::Rounding::same(height / 2.0);
     let painter = ui.painter();
 
@@ -1140,97 +1142,119 @@ impl eframe::App for PrepaWeekApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Some(warning) = &self.config_warning {
                 ui.colored_label(egui::Color32::from_rgb(200, 60, 60), warning);
-                ui.add_space(4.0);
+                ui.add_space(3.0);
             }
             if self.new_week_detected && self.week_setup.is_none() {
                 ui.colored_label(
                     egui::Color32::from_rgb(90, 140, 200),
                     "🔄 Nouvelle semaine détectée : les cases ont été remises à zéro.",
                 );
-                ui.add_space(4.0);
+                ui.add_space(3.0);
             }
 
-            ui.vertical_centered(|ui| {
-                ui.add_space(4.0);
-                ui.heading("📚 MA SEMAINE DE PRÉPA");
-                ui.add_space(4.0);
-                ui.label(format!("{} {} {} {}", day_name, today.day(), month_name, today.year()));
-                ui.label(format!(
-                    "Semaine du {} au {} {}",
-                    monday.day(), sunday.day(), MONTH_NAMES[sunday.month0() as usize]
-                ));
-                ui.add_space(2.0);
-                ui.label(format!(
-                    "Jour {} / 7   •   ⏳ {} jour{} restant{}",
-                    day_number, days_remaining,
-                    if days_remaining > 1 { "s" } else { "" },
-                    if days_remaining > 1 { "s" } else { "" },
-                ));
-                ui.label(
-                    egui::RichText::new(format!(
-                        "🕐 {:02}h{:02} / 24h   •   {:.0}h / 168h cette semaine",
-                        hour_of_day, minute_of_day, elapsed_hours
-                    ))
+            // --- En-tête compact, stylé comme les cartes de catégories ---
+            let header_accent = egui::Color32::from_rgb(108, 140, 255);
+            let header_resp = egui::Frame::none()
+                .fill(ui.visuals().faint_bg_color)
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::symmetric(12.0, 7.0))
+                .show(ui, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.label(egui::RichText::new("📚 MA SEMAINE DE PRÉPA").strong().size(15.0));
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "{} {} {} — Semaine du {} au {} {}",
+                                day_name,
+                                today.day(),
+                                month_name,
+                                monday.day(),
+                                sunday.day(),
+                                MONTH_NAMES[sunday.month0() as usize]
+                            ))
+                            .size(12.0),
+                        );
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "Jour {}/7 • ⏳ {} j. restant{}  •  🕐 {:02}h{:02}  •  {:.0}h/168h",
+                                day_number,
+                                days_remaining,
+                                if days_remaining > 1 { "s" } else { "" },
+                                hour_of_day,
+                                minute_of_day,
+                                elapsed_hours
+                            ))
+                            .small()
+                            .weak(),
+                        );
+                    });
+                });
+            let header_bar_rect = egui::Rect::from_min_size(
+                header_resp.response.rect.min,
+                egui::vec2(4.0, header_resp.response.rect.height()),
+            );
+            ui.painter().rect_filled(
+                header_bar_rect,
+                egui::Rounding { nw: 12.0, ne: 0.0, sw: 12.0, se: 0.0 },
+                header_accent,
+            );
+
+            ui.add_space(8.0);
+
+            // --- Progression principale : barre + palier sur une même ligne ---
+            ui.horizontal_wrapped(|ui| {
+                fancy_progress_bar(ui, displayed_progress, header_accent, 16.0, ui.available_width() * 0.52);
+                if total > 0 {
+                    let tier = progress_tier(delta);
+                    ui.colored_label(tier.color, format!("{} {} {:+.0}%", tier.icon, tier.label, delta));
+                }
+            });
+            ui.label(
+                egui::RichText::new(format!("{done}/{total} cases · temps écoulé {time_elapsed_pct:.0} %"))
                     .small()
                     .weak(),
-                );
-            });
+            );
 
-            ui.add_space(10.0);
-            ui.separator();
-            ui.add_space(6.0);
-
-            ui.label(egui::RichText::new(format!("Progression — {:.0} %", displayed_progress * 100.0)).strong());
-            fancy_progress_bar(ui, displayed_progress, egui::Color32::from_rgb(108, 140, 255), 18.0);
-            ui.label(format!("{} / {} cases cochées", done, total));
-
-            ui.add_space(6.0);
-
-            ui.horizontal(|ui| {
-                ui.label(format!("Temps écoulé : {:.0} %", time_elapsed_pct));
-                ui.label(format!("   Tâches réalisées : {:.0} %", progress_pct));
-            });
-            if total > 0 {
-                let tier = progress_tier(delta);
-                ui.colored_label(tier.color, format!("{} {} ({:+.0} %)", tier.icon, tier.label, delta));
-            }
-
-            // --- Comparaison avec la semaine précédente + série ---
-            if let Some(prev) = prev_week_pct {
-                let diff = progress_pct - prev;
-                let color = if diff > 0.5 {
-                    egui::Color32::from_rgb(70, 170, 100)
-                } else if diff < -0.5 {
-                    egui::Color32::from_rgb(210, 60, 60)
-                } else {
-                    egui::Color32::GRAY
-                };
-                ui.add_space(4.0);
-                ui.horizontal(|ui| {
-                    ui.label(format!("Semaine précédente : {:.0} %", prev));
-                    ui.colored_label(color, format!("({:+.0} % vs cette semaine)", diff));
+            // --- Comparaison semaine précédente + série, sur une ligne ---
+            if prev_week_pct.is_some() || streak >= 2 {
+                ui.horizontal_wrapped(|ui| {
+                    if let Some(prev) = prev_week_pct {
+                        let diff = progress_pct - prev;
+                        let color = if diff > 0.5 {
+                            egui::Color32::from_rgb(70, 170, 100)
+                        } else if diff < -0.5 {
+                            egui::Color32::from_rgb(210, 60, 60)
+                        } else {
+                            egui::Color32::GRAY
+                        };
+                        ui.label(egui::RichText::new(format!("Sem. précédente {prev:.0} %")).small().weak());
+                        ui.colored_label(color, egui::RichText::new(format!("({diff:+.0} %)")).small());
+                    }
+                    if streak >= 2 {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(230, 130, 30),
+                            egui::RichText::new(format!("🔥 {streak} sem. à +{:.0} %", STREAK_THRESHOLD)).small(),
+                        );
+                    }
                 });
-            }
-            if streak >= 2 {
-                ui.colored_label(
-                    egui::Color32::from_rgb(230, 130, 30),
-                    format!("🔥 {streak} semaines consécutives à +{:.0} %", STREAK_THRESHOLD),
-                );
             }
 
             // --- Barre secondaire : tâches "avant vendredi soir" ---
             if weekday_total > 0 {
-                ui.add_space(10.0);
-                ui.separator();
-                ui.add_space(6.0);
-                ui.label(egui::RichText::new(format!("📅 Avant vendredi soir (lundi ➡ vendredi) — {:.0} %", weekday_displayed_progress * 100.0)).strong());
-                fancy_progress_bar(ui, weekday_displayed_progress, egui::Color32::from_rgb(255, 190, 92), 14.0);
-                ui.label(format!("{} / {} cases (hors week-end)", weekday_done, weekday_total));
-                let wtier = progress_tier(weekday_delta);
-                ui.colored_label(wtier.color, format!("{} {} ({:+.0} %)", wtier.icon, wtier.label, weekday_delta));
+                ui.add_space(4.0);
+                let weekday_accent = egui::Color32::from_rgb(255, 190, 92);
+                ui.horizontal_wrapped(|ui| {
+                    fancy_progress_bar(ui, weekday_displayed_progress, weekday_accent, 13.0, ui.available_width() * 0.52);
+                    let wtier = progress_tier(weekday_delta);
+                    ui.colored_label(wtier.color, egui::RichText::new(format!("{} {} {:+.0}%", wtier.icon, wtier.label, weekday_delta)).small());
+                });
+                ui.label(
+                    egui::RichText::new(format!("📅 Avant vendredi : {weekday_done}/{weekday_total} cases (hors week-end)"))
+                        .small()
+                        .weak(),
+                );
             }
 
-            ui.add_space(10.0);
+            ui.add_space(6.0);
             ui.separator();
 
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
