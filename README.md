@@ -1,4 +1,4 @@
-# PrepaWeek — v1.1
+# 📚 PrepaWeek
 
 <p align="center">
   <img src="assets/screenshot-main-dark.png" alt="Vue principale, mode sombre" width="45%">
@@ -11,8 +11,6 @@
 <p align="center">
   <img src="assets/screenshot-confetti.png" alt="Semaine terminée à 100 % avec confettis" width="60%">
 </p>
-
-# 📚 PrepaWeek
 
 > **A simple desktop planner designed for students in preparatory classes.**
 
